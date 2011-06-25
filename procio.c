@@ -58,8 +58,10 @@
 #include <string.h>
 #include <unistd.h>
 #include <time.h>
+#include <libgen.h>
 
 enum sortby {
+  SortbyNone,
   SortbyWchar,
   SortbyRchar,
   SortbySyscw,
@@ -83,6 +85,7 @@ struct procioitem {
 struct procio {
   struct timeval tv;
   int npio;
+  enum sortby sortby;
   struct procioitem *pio;
 };
 
@@ -157,6 +160,38 @@ int getiodata(struct procio *pio)
   return pio->npio;
 }
 
+char * getsortbyname(enum sortby sortby)
+{
+	switch (sortby) {
+		case SortbyNone:
+			return "None";
+			break;
+		case SortbyWchar:
+			return "Wchar";
+			break;
+		case SortbyRchar:
+			return "Rchar";
+			break;
+		case SortbySyscw:
+			return "Syscw";
+			break;
+		case SortbySyscr:
+			return "Syscr";
+			break;
+		case SortbyWriteb:
+			return "Writeb";
+			break;
+		case SortbyReadb:
+			return "Readb";
+			break;
+		case SortbyCwriteb:
+			return "Cwriteb";
+			break;
+		default:
+			return "Unknown";
+	}
+}
+
 void printpio(struct procio *pio, char *tag, FILE *f, int pglen)
 {
   int i;
@@ -164,16 +199,18 @@ void printpio(struct procio *pio, char *tag, FILE *f, int pglen)
 
   tm = gmtime(&pio->tv.tv_sec);
 
-	fprintf(f, "at %ld.%06ld '%04d-%02d-%02d %02d:%02d:%02d.%06ld UTC' numproc: %d tag: %s\n",
+	fprintf(f, "at %ld.%06ld '%04d-%02d-%02d %02d:%02d:%02d.%06ld UTC' numproc: %d tag: %s sortby: %s\n",
       pio->tv.tv_sec, pio->tv.tv_usec, 
 			tm->tm_year+1900, tm->tm_mon+1, tm->tm_mday,
 			tm->tm_hour, tm->tm_min, tm->tm_sec, pio->tv.tv_usec, 
 			pio->npio,
-      tag);
+      tag,
+      getsortbyname(pio->sortby));
 
-  fprintf(f, "  nr    pid rchar wchar syscr syscw rbyte wbyte cbytes\n");
+  fprintf(f, "  nr    pid     rchar     wchar     syscr     syscw     rbyte     wbyte    cbytes\n");
+
   for(i=0; i<pglen && i<pio->npio; i++) {
-    fprintf(f, "%4d %6d %12llu %12llu %12llu %12llu %12llu %12llu %12llu\n",
+    fprintf(f, "%4d %6d %9llu %9llu %9llu %9llu %9llu %9llu %9llu\n",
         i,
         pio->pio[i].pid,
         pio->pio[i].rchar,
@@ -279,6 +316,7 @@ int sortbycwriteb(const void *p1, const void *p2)
 
 void sortpio(struct procio *pio, enum sortby sortby)
 {
+  pio->sortby = sortby;
 	switch (sortby) {
 		case SortbyWchar:
 			qsort(pio->pio, pio->npio,  sizeof(struct procioitem), sortbywchar);
@@ -301,17 +339,42 @@ void sortpio(struct procio *pio, enum sortby sortby)
 		case SortbyCwriteb:
 			qsort(pio->pio, pio->npio,  sizeof(struct procioitem), sortbycwriteb);
 			break;
+		case SortbyNone:
+      break;
 	}
 }
 
 int main(int argc, char *argv[])
 {
+  int opt;
   int delay = 1;
   int verbose = 0;
   int pglen = 10;
-  enum sortby sortby = SortbyWchar;
+	enum sortby sortby = SortbyWchar;
 
-  while(1) {
+	while ((opt = getopt(argc, argv, "hd:vp:s:")) != -1) {
+		switch (opt) {
+			case 'd':
+				delay = atoi(optarg);
+				break;
+			case 'v':
+				verbose = 1;
+				break;
+			case 'p':
+				pglen = atoi(optarg);
+				break;
+			case 's':
+				sortby = atoi(optarg);
+				break;
+			case 'h':
+			default: /* '?' */
+				fprintf(stderr, "Usage: %s [-d secs] [-v] [-p pagelen] [-s sortby]\n", basename(argv[0]));
+        fprintf(stderr, "  sortby: 1 - wchar, 2 - rchar, 3 - syscw, 4 - syscr, 5 - writeb, 6 - readb or 7 - cwriteb\n");
+				exit(EXIT_FAILURE);
+		}
+	}
+
+	while(1) {
     getiodata(&pion);
 
     if (verbose) printpio(&pion, "NEW", stdout, INT_MAX);
