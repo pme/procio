@@ -1,0 +1,10 @@
+core*
+tags
+*.o
+*.log
+*~
+.gdbinit
+getdelays
+getdio
+procio
+writer
