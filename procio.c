@@ -90,6 +90,7 @@ struct procio {
 };
 
 struct procio pion, pioo;
+char version[] = "$Id$";
 
 int filter(const struct dirent *de)
 {
@@ -110,9 +111,11 @@ int getiodata(struct procio *pio)
 
   gettimeofday(&pio->tv, NULL);
 
-  pio->npio = scandir("/proc", &de, filter, versionsort);
+  if ((pio->npio = scandir("/proc", &de, filter, versionsort)) == -1)
+    err(EXIT_FAILURE, "scandir()");
 
-  pio->pio = calloc(pio->npio, sizeof(struct procioitem));
+  if ((pio->pio = calloc(pio->npio, sizeof(struct procioitem))) == NULL)
+    errx(EXIT_FAILURE, "calloc()");
 
   for(i=0; i<pio->npio; i++) {
     FILE *f;
@@ -120,8 +123,7 @@ int getiodata(struct procio *pio)
 
     snprintf(buf, PATH_MAX, "/proc/%s/io", de[i]->d_name);
 
-    f = fopen(buf, "r");
-    if (f == NULL) {
+    if ((f = fopen(buf, "r")) == NULL) { /* Should it really exists later? */
       warn("open(%s)", buf);
       continue;
     }
@@ -374,7 +376,7 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	while(1) {
+	while (1) {
     getiodata(&pion);
 
     if (verbose) printpio(&pion, "NEW", stdout, INT_MAX);
@@ -388,7 +390,7 @@ int main(int argc, char *argv[])
 
     pioo = pion;
 
-    fprintf(stdout, "=============================================================================\n");
+    fprintf(stdout, "=================================================================================\n");
     sleep(delay);
   }
 
