@@ -90,7 +90,7 @@ struct procio {
 };
 
 struct procio pion, pioo;
-char version[] = "$Id$";
+char version[] = "1.0";
 
 int filter(const struct dirent *de)
 {
@@ -370,9 +370,14 @@ int main(int argc, char *argv[])
 				break;
 			case 'h':
 			default: /* '?' */
-				fprintf(stderr, "Usage: %s [-d secs] [-v] [-p pagelen] [-s sortby]\n", basename(argv[0]));
-        fprintf(stderr, "  sortby: 1 - wchar, 2 - rchar, 3 - syscw, 4 - syscr, 5 - writeb, 6 - readb or 7 - cwriteb\n");
-				exit(EXIT_FAILURE);
+				fprintf(stderr, "Usage: %s [-h] [-d secs] [-v] [-p pagelen] [-s sortby] # version: %s\n", basename(argv[0]), version);
+        fprintf(stderr, "  -h        - Prints this message\n");
+        fprintf(stderr, "  -d #      - delay in secs (def: 1s)\n");
+        fprintf(stderr, "  -v        - verbose\n");
+        fprintf(stderr, "  -p #      - page length (def: 10)\n");
+        fprintf(stderr, "  -s [1-7]  - order by descending\n");
+        fprintf(stderr, "    sortby: 1 - wchar, 2 - rchar, 3 - syscw, 4 - syscr, 5 - writeb, 6 - readb or 7 - cwriteb\n");
+				exit(opt == 'h' ? EXIT_SUCCESS : EXIT_FAILURE);
 		}
 	}
 
