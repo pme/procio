@@ -39,7 +39,7 @@ PROGRAMS = procio writer getdio
 all: $(PROGRAMS)
 
 clean:
-	rm -f $(PROGRAMS)
+	rm -f $(PROGRAMS) *~ tags
 
 tags:
 	ctags -R .
