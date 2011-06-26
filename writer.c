@@ -63,6 +63,7 @@ int main(int argc, char *argv[])
     printf("%4d\n", n);
     if (write(fd, buf, BUFSIZE) == -1)
       err(EXIT_FAILURE, "write(%s)", argv[1]);
+    sleep(1);
   }
 
   close(fd);

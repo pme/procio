@@ -104,14 +104,16 @@ int filter(const struct dirent *de)
 
 }
 
-int getiodata(struct procio *pio)
+int getiodata(struct procio *pio, pid_t pid)
 {
-  struct dirent **de;
+  struct dirent **de = NULL;
   int i;
 
   gettimeofday(&pio->tv, NULL);
 
-  if ((pio->npio = scandir("/proc", &de, filter, versionsort)) == -1)
+  if (pid)
+    pio->npio = 1;
+  else if ((pio->npio = scandir("/proc", &de, filter, versionsort)) == -1)
     err(EXIT_FAILURE, "scandir()");
 
   if ((pio->pio = calloc(pio->npio, sizeof(struct procioitem))) == NULL)
@@ -121,14 +123,18 @@ int getiodata(struct procio *pio)
     FILE *f;
     char buf[PATH_MAX+1];
 
-    snprintf(buf, PATH_MAX, "/proc/%s/io", de[i]->d_name);
+
+    if (pid)
+      snprintf(buf, PATH_MAX, "/proc/%d/io", pid);
+    else
+      snprintf(buf, PATH_MAX, "/proc/%s/io", de[i]->d_name);
 
     if ((f = fopen(buf, "r")) == NULL) { /* Should it really exists later? */
       warn("open(%s)", buf);
       continue;
     }
 
-    pio->pio[i].pid = atoll(de[i]->d_name);
+    pio->pio[i].pid = pid ? pid : atoll(de[i]->d_name);
     while (fgets(buf, PATH_MAX, f)) {
       char *nam, *val;
       long long v;
@@ -137,27 +143,29 @@ int getiodata(struct procio *pio)
       val = strtok(NULL, ": ");
       v = atoll(val);
 
-      if (!strcmp(nam, "rchar")) {
+      /* names are truncated for better performnce */
+      if (!memcmp(nam, "rc", 2)) {            /* rchar */
         pio->pio[i].rchar = v;
-      } else if (!strcmp(nam, "wchar")) {
+      } else if (!memcmp(nam, "wc", 2)) {     /* wchar */
         pio->pio[i].wchar = v;
-      } else if (!strcmp(nam, "syscr")) {
+      } else if (!memcmp(nam, "syscr", 5)) {  /* syscr */
         pio->pio[i].syscr = v;
-      } else if (!strcmp(nam, "syscw")) {
+      } else if (!memcmp(nam, "syscw", 5)) {  /* syscw */
         pio->pio[i].syscw = v;
-      } else if (!strcmp(nam, "read_bytes")) {
+      } else if (!memcmp(nam, "re", 2)) {     /* read_bytes */
         pio->pio[i].read_bytes = v;
-      } else if (!strcmp(nam, "write_bytes")) {
+      } else if (!memcmp(nam, "wr", 2)) {     /* write_bytes */
         pio->pio[i].write_bytes = v;
-      } else if (!strcmp(nam, "cancelled_write_bytes")) {
+      } else if (!memcmp(nam, "c", 1)) {      /* cancelled_write_bytes */
         pio->pio[i].cancelled_write_bytes = v;
       } else {
+        warnx("unknown name: %s", nam);
       }
     }
     fclose(f);
   }
 
-  free(de);
+  if (de) free(de);
 
   return pio->npio;
 }
@@ -352,9 +360,10 @@ int main(int argc, char *argv[])
   int delay = 1;
   int verbose = 0;
   int pglen = 10;
+  pid_t pid = 0;
 	enum sortby sortby = SortbyWchar;
 
-	while ((opt = getopt(argc, argv, "hd:vp:s:")) != -1) {
+	while ((opt = getopt(argc, argv, "hd:vp:s:P:")) != -1) {
 		switch (opt) {
 			case 'd':
 				delay = atoi(optarg);
@@ -368,21 +377,25 @@ int main(int argc, char *argv[])
 			case 's':
 				sortby = atoi(optarg);
 				break;
+			case 'P':
+				pid = atoi(optarg);
+				break;
 			case 'h':
 			default: /* '?' */
-				fprintf(stderr, "Usage: %s [-h] [-d secs] [-v] [-p pagelen] [-s sortby] # version: %s\n", basename(argv[0]), version);
-        fprintf(stderr, "  -h        - Prints this message\n");
+				fprintf(stderr, "Usage: %s [-h] [-d secs] [-v] [-p pagelen] [-s sortby] [-P pid]# version: %s\n", basename(argv[0]), version);
+        fprintf(stderr, "  -h        - prints this message\n");
         fprintf(stderr, "  -d #      - delay in secs (def: 1s)\n");
         fprintf(stderr, "  -v        - verbose\n");
         fprintf(stderr, "  -p #      - page length (def: 10)\n");
         fprintf(stderr, "  -s [1-7]  - sort by descending\n");
+        fprintf(stderr, "  -P #      - the only pid to listen\n");
         fprintf(stderr, "    sortby: 1 - wchar, 2 - rchar, 3 - syscw, 4 - syscr, 5 - writeb, 6 - readb or 7 - cwriteb\n");
 				exit(opt == 'h' ? EXIT_SUCCESS : EXIT_FAILURE);
 		}
 	}
 
 	while (1) {
-    getiodata(&pion);
+    getiodata(&pion, pid);
 
     if (verbose) printpio(&pion, "NEW", stdout, INT_MAX);
 
