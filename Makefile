@@ -34,7 +34,7 @@
 
 CFLAGS = -Wall -g
 
-PROGRAMS = procio writer getdio
+PROGRAMS = procio writer
 
 all: $(PROGRAMS)
 
