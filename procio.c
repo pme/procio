@@ -375,7 +375,7 @@ int main(int argc, char *argv[])
         fprintf(stderr, "  -d #      - delay in secs (def: 1s)\n");
         fprintf(stderr, "  -v        - verbose\n");
         fprintf(stderr, "  -p #      - page length (def: 10)\n");
-        fprintf(stderr, "  -s [1-7]  - order by descending\n");
+        fprintf(stderr, "  -s [1-7]  - sort by descending\n");
         fprintf(stderr, "    sortby: 1 - wchar, 2 - rchar, 3 - syscw, 4 - syscr, 5 - writeb, 6 - readb or 7 - cwriteb\n");
 				exit(opt == 'h' ? EXIT_SUCCESS : EXIT_FAILURE);
 		}
