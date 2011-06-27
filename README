@@ -1,0 +1,18 @@
+procio - Displays process level I/O 
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Description:
+~~~~~~~~~~~~
+procio periodically runs over /proc/[0-9]+/io files and reads their
+content. Substract the previously gather items from the current ones
+and display the sorted result. For more info run 'procio -h'
+(writer is just for testing purpouses.)
+
+Build:
+~~~~~~
+Simply run make
+ $ make
+
+Author:
+~~~~~~~
+	Peter Meszaros (pme) <hauptadler@gmail.com>
