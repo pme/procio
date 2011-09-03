@@ -354,6 +354,16 @@ void sortpio(struct procio *pio, enum sortby sortby)
 	}
 }
 
+void iosupported(void)
+{
+  FILE *f;
+
+  if ((f = fopen("/proc/self/io", "r")) == NULL)
+    err(EXIT_FAILURE, "cannot open /proc/self/io");
+
+  fclose(f);
+}
+
 int main(int argc, char *argv[])
 {
   int opt;
@@ -393,6 +403,8 @@ int main(int argc, char *argv[])
 				exit(opt == 'h' ? EXIT_SUCCESS : EXIT_FAILURE);
 		}
 	}
+
+  iosupported();
 
 	while (1) {
     getiodata(&pion, pid);
